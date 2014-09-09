@@ -1,0 +1,45 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.30723.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rally2Slack", "Rally2Slack\Rally2Slack.csproj", "{A7B62DE1-D077-4EE3-BB71-1993F1576E0D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rally2Slack.Core", "Rally2Slack.Core\Rally2Slack.Core.csproj", "{021AF495-30F9-47A7-885D-9DF4299522FD}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "References", "References", "{2B007067-FD9F-48A8-8609-73A7FF57023C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Rally", "Rally", "{D50FF7E8-7E44-4B49-AFB6-C3CE7B67BD27}"
+	ProjectSection(SolutionItems) = preProject
+		References\Rally\HtmlAgilityPack.dll = References\Rally\HtmlAgilityPack.dll
+		References\Rally\Rally.RestApi.dll = References\Rally\Rally.RestApi.dll
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rally2Slack.Web", "Rally2Slack.Web\Rally2Slack.Web.csproj", "{1CF3DA61-5D7C-4E39-B851-3730ACA518B4}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A7B62DE1-D077-4EE3-BB71-1993F1576E0D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A7B62DE1-D077-4EE3-BB71-1993F1576E0D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A7B62DE1-D077-4EE3-BB71-1993F1576E0D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A7B62DE1-D077-4EE3-BB71-1993F1576E0D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{021AF495-30F9-47A7-885D-9DF4299522FD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{021AF495-30F9-47A7-885D-9DF4299522FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{021AF495-30F9-47A7-885D-9DF4299522FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{021AF495-30F9-47A7-885D-9DF4299522FD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1CF3DA61-5D7C-4E39-B851-3730ACA518B4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1CF3DA61-5D7C-4E39-B851-3730ACA518B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1CF3DA61-5D7C-4E39-B851-3730ACA518B4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1CF3DA61-5D7C-4E39-B851-3730ACA518B4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{D50FF7E8-7E44-4B49-AFB6-C3CE7B67BD27} = {2B007067-FD9F-48A8-8609-73A7FF57023C}
+	EndGlobalSection
+EndGlobal

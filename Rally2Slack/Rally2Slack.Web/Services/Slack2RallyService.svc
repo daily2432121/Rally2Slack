@@ -1,0 +1,1 @@
+﻿<%@ ServiceHost Language="C#" Debug="true" Service="Rally2Slack.Web.Services.Slack2RallyService" CodeBehind="Slack2RallyService.svc.cs" %>
