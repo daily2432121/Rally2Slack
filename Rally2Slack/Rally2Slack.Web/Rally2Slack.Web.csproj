@@ -237,6 +237,7 @@
     <Content Include="packages.config" />
     <Content Include="ApplicationInsights.config" />
     <None Include="Properties\PublishProfiles\Slack2Rally %282%29.pubxml" />
+    <None Include="Properties\PublishProfiles\Slack2Rally %283%29.pubxml" />
     <None Include="Properties\PublishProfiles\Slack2Rally.pubxml" />
     <None Include="Scripts\jquery-1.8.2.intellisense.js" />
     <Content Include="Scripts\ai.js" />

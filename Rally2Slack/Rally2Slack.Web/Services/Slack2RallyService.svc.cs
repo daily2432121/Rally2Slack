@@ -11,6 +11,7 @@ using System.ServiceModel;
 using System.ServiceModel.Activation;
 using System.Text;
 using System.Text.RegularExpressions;
+using Microsoft.SqlServer.Server;
 using Rally2Slack.Core;
 using Rally2Slack.Web.Messages;
 using Rally2Slack.Web.ViewModels;
@@ -46,7 +47,7 @@ namespace Rally2Slack.Web.Services
             {
                 type = "hierarchicalrequirement";
             }
-            RallyService service =new RallyService();
+            RallyService service =new RallyService(RallyConfiguration.GetConfigurationByChannel(msg.ChannelName));
             var result = service.GetItem(type, itemStr);
             if (result.Results == null || !result.Results.Any())
             {
@@ -56,10 +57,13 @@ namespace Rally2Slack.Web.Services
             Random r = new Random((int)DateTime.Now.Ticks);
             ;
             //PostSlack(result.Results.First()["Description"],msg.token);
-            string t = (result.Results.First()["Description"] as string).HtmlToPlainText();
+            var item = result.Results.First();
+            string itemBody = (item["Description"] as string).HtmlToPlainText();
+            string itemName = (item["Name"] as string);
+            
 
 
-            return new SlackResponseVM() { text = "_"+welcomes[r.Next(0,welcomes.Count-1)]+"_"+"\r\n\r\n" + "*" + itemStr.ToUpper() + "*\r\n" + t };
+            return new SlackResponseVM() { text = "_"+welcomes[r.Next(0,welcomes.Count-1)]+"_"+"\r\n\r\n" + "*" + itemStr.ToUpper() + "*\r\n" + "*"+itemName+"*"+"\r\n"+ itemBody };
         }
 
         public SlackResponseVM RequestRallyItemTest(Stream slackBody)
