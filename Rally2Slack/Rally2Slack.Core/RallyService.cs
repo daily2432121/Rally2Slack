@@ -13,10 +13,12 @@ namespace Rally2Slack.Core
     {
         private static RallyRestApi _rallyRestApi = new RallyRestApi(@"cheng.huang@finoconsulting.com", "570124yaya");
 
-        public QueryResult GetItem(string itemId)
+        public QueryResult GetItem(string requestType,string itemId)
         {
+            
             RallyRestApi restApi = new RallyRestApi(@"cheng.huang@finoconsulting.com","570124yaya");
-            Request request = new Request("hierarchicalrequirement");
+            //Request request = new Request("hierarchicalrequirement");
+            Request request = new Request(requestType);
             //Request request = new Request();
             request.Fetch = new List<string>() {"Name","Description","FormattedID"};
 

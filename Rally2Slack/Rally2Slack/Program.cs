@@ -10,8 +10,8 @@ namespace Rally2Slack
     {
         static void Main(string[] args)
         {
-            RallyAuthenticateService service =new RallyAuthenticateService();
-            service.Authenticate();
+            //RallyAuthenticateService service =new RallyAuthenticateService();
+            //service.Authenticate();
         }
     }
 }

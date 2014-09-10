@@ -23,35 +23,56 @@ namespace Rally2Slack.Web.Services
     public class Slack2RallyService : ISlack2RallyService
     {
         
-        public SlackResponseVM RequestRallyItem(SlackMsg msg)
+        public SlackResponseVM RequestRallyItem(Stream stream)
         {
-            string text = msg.text;
+            StreamReader sr = new StreamReader(stream);
+
+            string str = sr.ReadToEnd();
+            SlackMsg msg= SlackMsg.FromString(str);
             Regex regex = new Regex(@"((US|Us|uS|us)\d{0,9})|(((dE|de|De|DE)\d{0,9}))");
-            Match m = regex.Match(text);
+            Match m = regex.Match(msg.Text);
             
             if (!m.Success)
             {
-                return new SlackResponseVM() { text = "Didn't recognize this item :(" };
+                return new SlackResponseVM() { text = "_Whuaaat?_" };
             }
             string itemStr = m.Groups[0].Value;
+            string type;
+            if (itemStr.StartsWith("DE", StringComparison.CurrentCultureIgnoreCase))
+            {
+                type = "defect";
+            }
+            else
+            {
+                type = "hierarchicalrequirement";
+            }
             RallyService service =new RallyService();
-            var result = service.GetItem(itemStr);
+            var result = service.GetItem(type, itemStr);
             if (result.Results == null || !result.Results.Any())
             {
-                return new SlackResponseVM() {text = "Nothing here but love"};
+                return new SlackResponseVM() {text = "_Nothing here but a wasted slack message_"};
             }
-            PostSlack(result.Results.First()["Description"],msg.token);
-            return new SlackResponseVM() { text = "Got it" };
+            List<string> welcomes =new List<string>{"how can I help all of you slackers?","you called?","Wassup?","I think I heard my name","Yes?","At your service"};
+            Random r = new Random((int)DateTime.Now.Ticks);
+            ;
+            //PostSlack(result.Results.First()["Description"],msg.token);
+            string t = (result.Results.First()["Description"] as string).HtmlToPlainText();
+
+
+            return new SlackResponseVM() { text = "_"+welcomes[r.Next(0,welcomes.Count-1)]+"_"+"\r\n\r\n" + "*" + itemStr.ToUpper() + "*\r\n" + t };
         }
 
-        public string RequestRallyItem(Stream slackBody)
+        public SlackResponseVM RequestRallyItemTest(Stream slackBody)
         {
-            using (StreamReader sr = new StreamReader(slackBody))
-            {
-                string str = sr.ReadToEnd();
-                throw new Exception(str);
-            }
+            SlackResponseVM result;
+            StreamReader sr = new StreamReader(slackBody);
             
+            string str = sr.ReadToEnd();
+            result = new SlackResponseVM() {text = str};
+            
+
+            return result;
+
         }
 
 
