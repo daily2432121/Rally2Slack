@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Sockets;
+using System.Runtime.Serialization;
 using System.Text;
 using Rally.RestApi;
 using Rally.RestApi.Response;
+using Rally2Slack.Core.Rally.Models;
 
-namespace Rally2Slack.Core
+namespace Rally2Slack.Core.Rally.Service
 {
     
 
@@ -48,6 +51,52 @@ namespace Rally2Slack.Core
 
 
         }
+
+
+        public List<SchedulableArtifact> GetKanban()
+        {
+            RallyRestApi restApi = new RallyRestApi(Config.UserName, Config.Password);
+            Request request = new Request("Iteration");
+            request.Fetch = new List<string>(){"Name", "StartDate","Project","EndDate"};
+            //request.Query = new Query(string.Format("((StartDate >= {0}) AND (Project.OID = {1}))",DateTime.Now.ToString("o"), projectId));
+            request.Query = new Query(string.Format("(StartDate >= {0})", DateTime.Now.ToString("o")));
+            request.Project = "/project/"+ Config.ProjectID;
+            request.Workspace = "/workspace/"+Config.WorkSpaceID;
+            QueryResult queryResult = restApi.Query(request);
+            string iterationName;
+            
+            if (queryResult.Results.Any())
+            {
+                var iter = queryResult.Results.Select(e => new Iteration(e)).Where(r => r.StartDate <= DateTime.Now).OrderByDescending(r => r.StartDate).First();
+                iterationName = iter.Name;
+                
+            }
+            else
+            {
+                return null;
+            }
+
+            request = new Request("defect");
+            request.Fetch = new List<string>() { "Name", "ObjectID", "FormattedID", "c_KanbanState", "Description","Owner" };
+            request.Query = new Query("Iteration.Name", Query.Operator.Equals, iterationName);
+            queryResult = restApi.Query(request);
+            List<SchedulableArtifact> results = new List<SchedulableArtifact>(); 
+            if (queryResult.Results.Any())
+            {
+                results.AddRange(queryResult.Results.Select(e=>new Defect(e)).ToList());
+            }
+
+            request = new Request("hierarchicalrequirement");
+            request.Fetch = new List<string>() { "Name", "ObjectID", "FormattedID", "c_KanbanState", "Description", "Owner" };
+            request.Query = new Query("Iteration.Name", Query.Operator.Equals, iterationName);
+            queryResult = restApi.Query(request);
+            if (queryResult.Results.Any())
+            {
+                results.AddRange(queryResult.Results.Select(e => new UserStory(e)).ToList());
+            }
+            return results;
+
+        }
     }
 
 
@@ -57,13 +106,14 @@ namespace Rally2Slack.Core
         public string UserName { get; set; }
         public string Password { get; set; }
         public List<string> Channels { get; set; }
-
+        public long ProjectID { get; set; }
+        public long WorkSpaceID { get; set; }
         public static List<RallyConfiguration> GetAllConfigurations()
         {
             List<RallyConfiguration> configs = new List<RallyConfiguration>()
             {
                 GetDEConfiguration(),
-                GetEncariConfiguration(),
+                //GetEncariConfiguration(),
                 GetSlackTestConfiguration()
             };
             return configs;
@@ -88,7 +138,9 @@ namespace Rally2Slack.Core
                 Team = "DE",
                 UserName = "cheng.huang@finoconsulting.com",
                 Password = "570124yaya",
-                Channels = new List<string>(){"direct-energy","direct-energy-ios","de_analytics","ex-directenergy-ng","ex-directenergy-dev"}
+                ProjectID = 13073500360,
+                WorkSpaceID = 13073262940,
+                Channels = new List<string>(){"directenergy","directenergy-ios","de_analytics","ex-directenergy-ng","ex-directenergy-dev"}
             };
         }
 
@@ -99,7 +151,9 @@ namespace Rally2Slack.Core
             {
                 Team = "Encari",
                 UserName = "patrick.cash@finoconsulting.com",
-                Password = "570124yaya",
+                //Password = "570124yaya",
+                //ProjectID = 13073500360,
+                //workSpaceID = 13073262940,
                 Channels = new List<string>() { "encari-dev", "encari" }
             };
         }
@@ -112,6 +166,8 @@ namespace Rally2Slack.Core
                 Team = "TEST",
                 UserName = "cheng.huang@finoconsulting.com",
                 Password = "570124yaya",
+                ProjectID = 13073500360,
+                WorkSpaceID = 13073262940,
                 Channels = new List<string>() { "slacktesting"}
             };
         }

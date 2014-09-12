@@ -45,7 +45,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="RallyService.cs" />
+    <Compile Include="Rally\Models\Defect.cs" />
+    <Compile Include="Rally\Models\Iteration.cs" />
+    <Compile Include="Rally\Models\SchedulableArtifact.cs" />
+    <Compile Include="Rally\Models\UserStory.cs" />
+    <Compile Include="Rally\Services\RallyService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

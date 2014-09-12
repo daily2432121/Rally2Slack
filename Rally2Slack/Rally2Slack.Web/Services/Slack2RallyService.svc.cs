@@ -13,6 +13,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.SqlServer.Server;
 using Rally2Slack.Core;
+using Rally2Slack.Core.Rally.Service;
 using Rally2Slack.Web.Messages;
 using Rally2Slack.Web.ViewModels;
 
@@ -27,12 +28,100 @@ namespace Rally2Slack.Web.Services
         public SlackResponseVM RequestRallyItem(Stream stream)
         {
             StreamReader sr = new StreamReader(stream);
-
+            
             string str = sr.ReadToEnd();
+            
             SlackMsg msg= SlackMsg.FromString(str);
+            if (str.ToLower().Contains("kanban"))
+            {
+                return GetKanban(msg.ChannelName);
+            }
             Regex regex = new Regex(@"((US|Us|uS|us)\d{0,9})|(((dE|de|De|DE)\d{0,9}))");
             Match m = regex.Match(msg.Text);
             
+            if (!m.Success)
+            {
+                return new SlackResponseVM() { text = "_Whuaaat?_" };
+            }
+            string itemStr = m.Groups[0].Value;
+            return GetItem(itemStr, msg.ChannelName);
+
+
+            
+        }
+
+        private SlackResponseVM GetKanban(string channelName)
+        {
+            RallyService service = new RallyService(RallyConfiguration.GetConfigurationByChannel(channelName));
+            var result = service.GetKanban().OrderBy(e=>e.KanbanState).ThenBy(e=>e.Owner).ToList();
+            StringBuilder sb=new StringBuilder();
+            string responseText;
+            if (!result.Any())
+            {
+                responseText = "_Kanban is empty! I ate all the items for you_";
+                return new SlackResponseVM(){text = responseText};
+            }
+            sb.Append("       *KANBAN*                  ");
+            sb.Append("_________________________________" + Environment.NewLine);
+            foreach (var sa in result)
+            {
+                sb.Append("*"+sa.FormattedID+"*"+Environment.NewLine);
+                sb.Append("*"+sa.Name+"*"+Environment.NewLine);
+                sb.Append(sa.Owner+Environment.NewLine);
+                sb.Append(sa.KanbanState+Environment.NewLine);
+                sb.Append("_________________________________" + Environment.NewLine);
+            }
+            responseText = sb.ToString();
+            return new SlackResponseVM() {text = responseText};
+        }
+
+
+        private SlackResponseVM GetItem(string itemStr, string channelName)
+        {
+            
+            string type;
+            if (itemStr.StartsWith("DE", StringComparison.CurrentCultureIgnoreCase))
+            {
+                type = "defect";
+            }
+            else
+            {
+                type = "hierarchicalrequirement";
+            }
+            RallyService service = new RallyService(RallyConfiguration.GetConfigurationByChannel(channelName));
+            var result = service.GetItem(type, itemStr);
+            if (result.Results == null || !result.Results.Any())
+            {
+                return new SlackResponseVM() { text = "_Nothing here but a wasted slack message_" };
+            }
+            List<string> welcomes = new List<string> { "how can I help all of you slackers?", "you called?", "Wassup?", "I think I heard my name", "Yes?", "At your service" };
+            Random r = new Random((int)DateTime.Now.Ticks);
+            ;
+            //PostSlack(result.Results.First()["Description"],msg.token);
+            var item = result.Results.First();
+            string itemBody = (item["Description"] as string).HtmlToPlainText();
+            string itemName = (item["Name"] as string);
+
+
+
+            return new SlackResponseVM() { text = "_" + GetWelcomeMsg() + "_" + "\r\n\r\n" + "*" + itemStr.ToUpper() + "*\r\n" + "*" + itemName + "*" + "\r\n" + itemBody };
+        }
+
+        private string GetWelcomeMsg()
+        {
+            List<string> welcomes = new List<string> { "how can I help all of you slackers?", "you called?", "Wassup?", "I think I heard my name", "Yes?", "At your service" };
+            Random r = new Random((int)DateTime.Now.Ticks);
+            return welcomes[r.Next(0, welcomes.Count - 1)];
+        }
+        public SlackResponseVM RequestRallyKanban(Stream stream)
+        {
+            StreamReader sr = new StreamReader(stream);
+
+            string str = sr.ReadToEnd();
+            SlackMsg msg = SlackMsg.FromString(str);
+            Regex regex = new Regex(@"kanban");
+            Match m = regex.Match(msg.Text);
+
             if (!m.Success)
             {
                 return new SlackResponseVM() { text = "_Whuaaat?_" };
@@ -47,23 +136,23 @@ namespace Rally2Slack.Web.Services
             {
                 type = "hierarchicalrequirement";
             }
-            RallyService service =new RallyService(RallyConfiguration.GetConfigurationByChannel(msg.ChannelName));
+            RallyService service = new RallyService(RallyConfiguration.GetConfigurationByChannel(msg.ChannelName));
             var result = service.GetItem(type, itemStr);
             if (result.Results == null || !result.Results.Any())
             {
-                return new SlackResponseVM() {text = "_Nothing here but a wasted slack message_"};
+                return new SlackResponseVM() { text = "_Nothing here but a wasted slack message_" };
             }
-            List<string> welcomes =new List<string>{"how can I help all of you slackers?","you called?","Wassup?","I think I heard my name","Yes?","At your service"};
+            List<string> welcomes = new List<string> { "how can I help all of you slackers?", "you called?", "Wassup?", "I think I heard my name", "Yes?", "At your service" };
             Random r = new Random((int)DateTime.Now.Ticks);
             ;
             //PostSlack(result.Results.First()["Description"],msg.token);
             var item = result.Results.First();
             string itemBody = (item["Description"] as string).HtmlToPlainText();
             string itemName = (item["Name"] as string);
-            
 
 
-            return new SlackResponseVM() { text = "_"+welcomes[r.Next(0,welcomes.Count-1)]+"_"+"\r\n\r\n" + "*" + itemStr.ToUpper() + "*\r\n" + "*"+itemName+"*"+"\r\n"+ itemBody };
+
+            return new SlackResponseVM() { text = "_" + welcomes[r.Next(0, welcomes.Count - 1)] + "_" + "\r\n\r\n" + "*" + itemStr.ToUpper() + "*\r\n" + "*" + itemName + "*" + "\r\n" + itemBody };
         }
 
         public SlackResponseVM RequestRallyItemTest(Stream slackBody)
@@ -73,32 +162,39 @@ namespace Rally2Slack.Web.Services
             
             string str = sr.ReadToEnd();
             result = new SlackResponseVM() {text = str};
-            
+            PostSlack(str, "@cheng.huang");
 
             return result;
 
         }
 
 
-        public string GetSlackPostUrl(string token)
+        public string GetSlackPostUrl(string token=null)
         {
             
             string url = ConfigurationManager.AppSettings["SlackEndPoint"];
+            if (token == null)
+            {
+                token = ConfigurationManager.AppSettings["SlackToken"];
+  
+            }
             var result = string.Format("https://{0}/services/hooks/incoming-webhook?token={1}", url, token);
             Debug.WriteLine("Watcher::SlackPostUrl: " + result);
             return result;
 
             
         }
+        //Mz63vU2OV0yYU2hPey9FEvcC
 
-        private bool PostSlack(string message,string token)
+
+        public bool PostSlack(string message,string channel,  string token = null)
         {
             try
             {
-                SlackResponseVM msg = new SlackResponseVM();
-                msg.text = message;
-                
-
+                IncomingWebHookResponseVM msg = new IncomingWebHookResponseVM();
+                msg.slack_message = message;
+                msg.slack_sender = "slackbot";
+                msg.slack_channel = "@cheng.huang";
                 var url2 = new Uri(GetSlackPostUrl(token));
                 HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(url2);
                 request.ContentType = "application/json; charset=utf-8";
