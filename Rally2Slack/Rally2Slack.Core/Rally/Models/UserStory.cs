@@ -14,7 +14,14 @@ namespace Rally2Slack.Core.Rally.Models
             Name = source["Name"];
             KanbanState = source["c_KanbanState"];
             Description = source["Description"];
-            Owner = source["Owner"]["_refObjectName"];
+            if (source["Owner"] == null)
+            {
+                Owner = null;
+            }
+            else
+            {
+                Owner = source["Owner"]["_refObjectName"];
+            }
             
 
         }

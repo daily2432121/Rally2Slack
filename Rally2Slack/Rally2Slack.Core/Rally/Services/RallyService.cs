@@ -40,7 +40,10 @@ namespace Rally2Slack.Core.Rally.Service
         {
             RallyRestApi restApi=new RallyRestApi(Config.UserName,Config.Password);
             //Request request = new Request("hierarchicalrequirement");
+
             Request request = new Request(requestType);
+            request.Project = "/project/" + Config.ProjectID;
+            request.Workspace = "/workspace/" + Config.WorkSpaceID;
             //Request request = new Request();
             request.Fetch = new List<string>() {"Name","Description","FormattedID"};
 
@@ -77,6 +80,8 @@ namespace Rally2Slack.Core.Rally.Service
             }
 
             request = new Request("defect");
+            request.Project = "/project/" + Config.ProjectID;
+            request.Workspace = "/workspace/" + Config.WorkSpaceID;
             request.Fetch = new List<string>() { "Name", "ObjectID", "FormattedID", "c_KanbanState", "Description","Owner" };
             request.Query = new Query("Iteration.Name", Query.Operator.Equals, iterationName);
             queryResult = restApi.Query(request);
@@ -87,6 +92,8 @@ namespace Rally2Slack.Core.Rally.Service
             }
 
             request = new Request("hierarchicalrequirement");
+            request.Project = "/project/" + Config.ProjectID;
+            request.Workspace = "/workspace/" + Config.WorkSpaceID;
             request.Fetch = new List<string>() { "Name", "ObjectID", "FormattedID", "c_KanbanState", "Description", "Owner" };
             request.Query = new Query("Iteration.Name", Query.Operator.Equals, iterationName);
             queryResult = restApi.Query(request);
@@ -113,7 +120,7 @@ namespace Rally2Slack.Core.Rally.Service
             List<RallyConfiguration> configs = new List<RallyConfiguration>()
             {
                 GetDEConfiguration(),
-                //GetEncariConfiguration(),
+                GetEncariConfiguration(),
                 GetSlackTestConfiguration()
             };
             return configs;
@@ -150,10 +157,10 @@ namespace Rally2Slack.Core.Rally.Service
             return new RallyConfiguration()
             {
                 Team = "Encari",
-                UserName = "patrick.cash@finoconsulting.com",
-                //Password = "570124yaya",
-                //ProjectID = 13073500360,
-                //workSpaceID = 13073262940,
+                UserName = "cheng.huang@finoconsulting.com",
+                Password = "570124yaya",
+                ProjectID = 18985605563,
+                WorkSpaceID = 13073262940 ,
                 Channels = new List<string>() { "encari-dev", "encari" }
             };
         }
