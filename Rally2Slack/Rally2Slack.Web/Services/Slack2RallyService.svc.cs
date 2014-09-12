@@ -61,7 +61,7 @@ namespace Rally2Slack.Web.Services
                 responseText = "_Kanban is empty! I ate all the items for you_";
                 return new SlackResponseVM(){text = responseText};
             }
-            sb.Append("       *KANBAN*                  ");
+            sb.Append("       *KANBAN 看板*             " + Environment.NewLine);
             sb.Append("_________________________________" + Environment.NewLine);
             foreach (var sa in result)
             {
