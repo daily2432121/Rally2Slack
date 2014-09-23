@@ -10,22 +10,22 @@ using Rally2Slack.Core.Rally.Models;
 
 namespace Rally2Slack.Core.Rally.Service
 {
-    
+
 
     public class RallyService
     {
-        
+
 
         private RallyConfiguration Config { get; set; }
 
 
         public RallyService(string username, string pass, string teamName, params string[] channels)
         {
-            Config=new RallyConfiguration()
+            Config = new RallyConfiguration()
             {
                 UserName = username,
                 Password = pass,
-                Team =  teamName,
+                Team = teamName,
                 Channels = new List<string>(channels)
 
             };
@@ -36,16 +36,16 @@ namespace Rally2Slack.Core.Rally.Service
             Config = config;
         }
 
-        public QueryResult GetItem(string requestType,string itemId)
+        public QueryResult GetItem(string requestType, string itemId)
         {
-            RallyRestApi restApi=new RallyRestApi(Config.UserName,Config.Password);
+            RallyRestApi restApi = new RallyRestApi(Config.UserName, Config.Password);
             //Request request = new Request("hierarchicalrequirement");
 
             Request request = new Request(requestType);
             request.Project = "/project/" + Config.ProjectID;
             request.Workspace = "/workspace/" + Config.WorkSpaceID;
             //Request request = new Request();
-            request.Fetch = new List<string>() {"Name","Description","FormattedID"};
+            request.Fetch = new List<string>() {"Name", "Description", "FormattedID"};
 
             request.Query = new Query("FormattedID", Query.Operator.Equals, itemId);
 
@@ -60,41 +60,41 @@ namespace Rally2Slack.Core.Rally.Service
         {
             RallyRestApi restApi = new RallyRestApi(Config.UserName, Config.Password);
             Request request = new Request("Iteration");
-            request.Fetch = new List<string>(){"Name", "StartDate","Project","EndDate"};
-            //request.Query = new Query(string.Format("((StartDate >= {0}) AND (Project.OID = {1}))",DateTime.Now.ToString("o"), projectId));
-            request.Query = new Query(string.Format("(StartDate >= {0})", DateTime.Now.ToString("o")));
-            request.Project = "/project/"+ Config.ProjectID;
-            request.Workspace = "/workspace/"+Config.WorkSpaceID;
+            request.Fetch = new List<string>() {"Name", "StartDate", "Project", "EndDate"};
+            //request.Query = new Query(string.Format("((StartDate <= {0}) AND (Project.OID = {1}))",DateTime.Now.ToString("o"), projectId));
+            request.Query = new Query(string.Format("(StartDate <= {0})", DateTime.Now.ToString("o")));
+            request.Project = "/project/" + Config.ProjectID;
+            request.Workspace = "/workspace/" + Config.WorkSpaceID;
             QueryResult queryResult = restApi.Query(request);
             string iterationName;
-            
+
             if (queryResult.Results.Any())
             {
                 var iter = queryResult.Results.Select(e => new Iteration(e)).Where(r => r.StartDate <= DateTime.Now).OrderByDescending(r => r.StartDate).First();
                 iterationName = iter.Name;
-                
+
             }
             else
             {
-                return null;
+                return new List<SchedulableArtifact>();
             }
 
             request = new Request("defect");
             request.Project = "/project/" + Config.ProjectID;
             request.Workspace = "/workspace/" + Config.WorkSpaceID;
-            request.Fetch = new List<string>() { "Name", "ObjectID", "FormattedID", "c_KanbanState", "Description","Owner" };
+            request.Fetch = new List<string>() {"Name", "ObjectID", "FormattedID", "c_KanbanState", "c_KanbanProgress","Description", "ScheduleState", "Owner"};
             request.Query = new Query("Iteration.Name", Query.Operator.Equals, iterationName);
             queryResult = restApi.Query(request);
-            List<SchedulableArtifact> results = new List<SchedulableArtifact>(); 
+            List<SchedulableArtifact> results = new List<SchedulableArtifact>();
             if (queryResult.Results.Any())
             {
-                results.AddRange(queryResult.Results.Select(e=>new Defect(e)).ToList());
+                results.AddRange(queryResult.Results.Select(e => new Defect(e)).ToList());
             }
 
             request = new Request("hierarchicalrequirement");
             request.Project = "/project/" + Config.ProjectID;
             request.Workspace = "/workspace/" + Config.WorkSpaceID;
-            request.Fetch = new List<string>() { "Name", "ObjectID", "FormattedID", "c_KanbanState", "Description", "Owner" };
+            request.Fetch = new List<string>() { "Name", "ObjectID", "FormattedID", "c_KanbanState", "c_KanbanProgress", "Description", "ScheduleState", "Owner" };
             request.Query = new Query("Iteration.Name", Query.Operator.Equals, iterationName);
             queryResult = restApi.Query(request);
             if (queryResult.Results.Any())
@@ -104,79 +104,142 @@ namespace Rally2Slack.Core.Rally.Service
             return results;
 
         }
-    }
 
 
-    public class RallyConfiguration
-    {
-        public string Team { get; set; }
-        public string UserName { get; set; }
-        public string Password { get; set; }
-        public List<string> Channels { get; set; }
-        public long ProjectID { get; set; }
-        public long WorkSpaceID { get; set; }
-        public static List<RallyConfiguration> GetAllConfigurations()
+
+
+        public enum KanbanSortCategory
         {
-            List<RallyConfiguration> configs = new List<RallyConfiguration>()
-            {
-                GetDEConfiguration(),
-                GetEncariConfiguration(),
-                GetSlackTestConfiguration()
-            };
-            return configs;
+            CatagorizedByKanbanState,
+            CatagorizedByKanbanProgress,
+            CatagorizedByScheduleState
         }
-        
 
-        public static RallyConfiguration GetConfigurationByChannel(string channel)
+        public class RallyConfiguration
         {
-            var configs = GetAllConfigurations().Where(c => c.Channels.Contains(channel.ToLower())).ToList();
-            if (configs.Any())
+            public string Team { get; set; }
+            public string UserName { get; set; }
+            public string Password { get; set; }
+            public List<string> Channels { get; set; }
+            public long ProjectID { get; set; }
+            public long WorkSpaceID { get; set; }
+            public KanbanSortCategory KanbanSort { get;set;}
+            public static List<RallyConfiguration> GetAllConfigurations()
             {
-                return configs.First();
+                List<RallyConfiguration> configs = new List<RallyConfiguration>()
+                {
+                    GetDEConfiguration(),
+                    GetDEAnalyticsConfiguration(),
+                    GetEncariConfiguration(),
+                    GetFinoMarketingConfiguration(),
+                    //GetSlackTestConfiguration()
+                    GetSlackTestForMarketingConfiguration()
+
+                };
+                return configs;
             }
-            return null;
-        }
 
 
-        public static RallyConfiguration GetDEConfiguration()
-        {
-            return new RallyConfiguration()
+            public static RallyConfiguration GetConfigurationByChannel(string channel)
             {
-                Team = "DE",
-                UserName = "cheng.huang@finoconsulting.com",
-                Password = "570124yaya",
-                ProjectID = 13073500360,
-                WorkSpaceID = 13073262940,
-                Channels = new List<string>(){"directenergy","directenergy-ios","de_analytics","ex-directenergy-ng","ex-directenergy-dev"}
-            };
-        }
+                var configs = GetAllConfigurations().Where(c => c.Channels.Contains(channel.ToLower())).ToList();
+                if (configs.Any())
+                {
+                    return configs.First();
+                }
+                return null;
+            }
 
 
-        public static RallyConfiguration GetEncariConfiguration()
-        {
-            return new RallyConfiguration()
+            public static RallyConfiguration GetDEConfiguration()
             {
-                Team = "Encari",
-                UserName = "cheng.huang@finoconsulting.com",
-                Password = "570124yaya",
-                ProjectID = 18985605563,
-                WorkSpaceID = 13073262940 ,
-                Channels = new List<string>() { "encari-dev", "encari" }
-            };
-        }
+                return new RallyConfiguration()
+                {
+                    Team = "DE",
+                    UserName = "cheng.huang@finoconsulting.com",
+                    Password = "570124yaya",
+                    ProjectID = 13073500360,
+                    WorkSpaceID = 13073262940,
+                    KanbanSort = KanbanSortCategory.CatagorizedByKanbanState,
+                    Channels = new List<string>() {"directenergy", "directenergy-ios", "ex-directenergy-ng", "ex-directenergy-dev"}
+                };
+            }
 
 
-        public static RallyConfiguration GetSlackTestConfiguration()
-        {
-            return new RallyConfiguration()
+
+            public static RallyConfiguration GetDEAnalyticsConfiguration()
             {
-                Team = "TEST",
-                UserName = "cheng.huang@finoconsulting.com",
-                Password = "570124yaya",
-                ProjectID = 13073500360,
-                WorkSpaceID = 13073262940,
-                Channels = new List<string>() { "slacktesting"}
-            };
+                return new RallyConfiguration()
+                {
+                    Team = "DE",
+                    UserName = "cheng.huang@finoconsulting.com",
+                    Password = "570124yaya",
+                    ProjectID = 20523617147,
+                    WorkSpaceID = 13073262940,
+                    KanbanSort = KanbanSortCategory.CatagorizedByScheduleState,
+                    Channels = new List<string>() {  "de_analytics"}
+                };
+            }
+
+            public static RallyConfiguration GetEncariConfiguration()
+            {
+                return new RallyConfiguration()
+                {
+                    Team = "Encari",
+                    UserName = "cheng.huang@finoconsulting.com",
+                    Password = "570124yaya",
+                    ProjectID = 18985605563,
+                    WorkSpaceID = 13073262940,
+                    KanbanSort = KanbanSortCategory.CatagorizedByKanbanProgress,
+                    Channels = new List<string>() {"encari-dev", "encari"}
+                };
+            }
+
+
+            public static RallyConfiguration GetSlackTestConfiguration()
+            {
+                return new RallyConfiguration()
+                {
+                    Team = "TEST",
+                    UserName = "cheng.huang@finoconsulting.com",
+                    Password = "570124yaya",
+                    ProjectID = 13073500360,
+                    WorkSpaceID = 13073262940,
+                    KanbanSort = KanbanSortCategory.CatagorizedByKanbanState,
+                    Channels = new List<string>() {"slacktesting"}
+                };
+            }
+
+
+            public static RallyConfiguration GetSlackTestForMarketingConfiguration()
+            {
+                return new RallyConfiguration()
+                {
+                    Team = "TEST",
+                    UserName = "cheng.huang@finoconsulting.com",
+                    Password = "570124yaya",
+                    ProjectID = 21395328391,
+                    WorkSpaceID = 13073262940,
+                    KanbanSort = KanbanSortCategory.CatagorizedByScheduleState,
+                    Channels = new List<string>() { "slacktesting" }
+                };
+            }
+
+
+
+            public static RallyConfiguration GetFinoMarketingConfiguration()
+            {
+                return new RallyConfiguration()
+                {
+                    Team = "FinoMarketing",
+                    UserName = "cheng.huang@finoconsulting.com",
+                    Password = "570124yaya",
+                    ProjectID = 21395328391,
+                    WorkSpaceID = 13073262940,
+                    KanbanSort = KanbanSortCategory.CatagorizedByScheduleState,
+                    Channels = new List<string>() { "marketing" }
+                };
+            }
         }
     }
 }

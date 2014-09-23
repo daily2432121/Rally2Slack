@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -11,8 +13,12 @@ using System.ServiceModel;
 using System.ServiceModel.Activation;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Web.Hosting;
+using DotNetOpenAuth.Messaging;
 using Microsoft.SqlServer.Server;
 using Rally2Slack.Core;
+using Rally2Slack.Core.HtmlConvert.Service;
+using Rally2Slack.Core.Rally.Models;
 using Rally2Slack.Core.Rally.Service;
 using Rally2Slack.Web.Messages;
 using Rally2Slack.Web.ViewModels;
@@ -22,6 +28,7 @@ namespace Rally2Slack.Web.Services
     // NOTE: You can use the "Rename" command on the "Refactor" menu to change the class name "Slack2RallyService" in code, svc and config file together.
     // NOTE: In order to launch WCF Test Client for testing this service, please select Slack2RallyService.svc or Slack2RallyService.svc.cs at the Solution Explorer and start debugging.
     [AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Allowed)]
+    [ServiceBehavior(ConcurrencyMode = ConcurrencyMode.Single, InstanceContextMode = InstanceContextMode.PerSession)]
     public class Slack2RallyService : ISlack2RallyService
     {
         
@@ -34,7 +41,7 @@ namespace Rally2Slack.Web.Services
             SlackMsg msg= SlackMsg.FromString(str);
             if (str.ToLower().Contains("kanban"))
             {
-                return GetKanban(msg.ChannelName);
+                return GetKanban2(msg.ChannelName);
             }
             Regex regex = new Regex(@"((US|Us|uS|us)\d{0,9})|(((dE|de|De|DE)\d{0,9}))");
             Match m = regex.Match(msg.Text);
@@ -43,16 +50,18 @@ namespace Rally2Slack.Web.Services
             {
                 return new SlackResponseVM() { text = "_Whuaaat?_" };
             }
+
             string itemStr = m.Groups[0].Value;
             return GetItem(itemStr, msg.ChannelName);
 
 
             
         }
-
+        
+        //old text kanban, obsolete for time being
         private SlackResponseVM GetKanban(string channelName)
         {
-            RallyService service = new RallyService(RallyConfiguration.GetConfigurationByChannel(channelName));
+            RallyService service = new RallyService(RallyService.RallyConfiguration.GetConfigurationByChannel(channelName));
             var result = service.GetKanban().OrderBy(e=>e.KanbanState).ThenBy(e=>e.Owner).ToList();
             StringBuilder sb=new StringBuilder();
             string responseText;
@@ -61,7 +70,7 @@ namespace Rally2Slack.Web.Services
                 responseText = "_Kanban is empty! I ate all the items for you_";
                 return new SlackResponseVM(){text = responseText};
             }
-            sb.Append("       *KANBAN 看板*             " + Environment.NewLine);
+            sb.Append("*KANBAN 看板 かんばん கான்பன்*" + Environment.NewLine);
             sb.Append("_________________________________" + Environment.NewLine);
             foreach (var sa in result)
             {
@@ -75,11 +84,133 @@ namespace Rally2Slack.Web.Services
             return new SlackResponseVM() {text = responseText};
         }
 
+        public KanbanHtmlVM GetKanbanItems(string channelName)
+        {
+            var config = RallyService.RallyConfiguration.GetConfigurationByChannel(channelName);
+            List<SchedulableArtifact> list = new List<SchedulableArtifact>();
+            Dictionary<string, List<SchedulableArtifact>> dict ;
+            RallyService service = new RallyService(config);
+            var kanban = service.GetKanban();
+            switch (config.KanbanSort)
+            {
+                case RallyService.KanbanSortCategory.CatagorizedByKanbanState:
+                    list = kanban.OrderBy(e => e.KanbanState).ThenBy(e => e.Owner).ToList();
+                    dict = list.GroupBy(e => e.KanbanState).ToDictionary(e => e.Key, e => e.ToList());
+                    break;
+                case RallyService.KanbanSortCategory.CatagorizedByKanbanProgress:
+                    list = kanban.OrderBy(e => e.KanbanProgress).ThenBy(e => e.Owner).ToList();
+                    dict = list.GroupBy(e => e.KanbanProgress).ToDictionary(e => e.Key, e => e.ToList());
+                    break;
+                case RallyService.KanbanSortCategory.CatagorizedByScheduleState:
+                    list = service.GetKanban().OrderBy(e => e.ScheduleState).ThenBy(e => e.Owner).ToList();
+                    dict = list.GroupBy(e => e.ScheduleState).ToDictionary(e => e.Key, e => e.ToList());
+                    break;
+                default:
+                    list = kanban.OrderBy(e => e.ScheduleState).ThenBy(e => e.Owner).ToList();
+                    dict = list.GroupBy(e => e.ScheduleState).ToDictionary(e => e.Key, e => e.ToList());
+                    break;
+            }
+           
+            
+            KanbanHtmlVM result = new KanbanHtmlVM() {KanbanItems = dict, KanbanCatorgory = dict.Keys.ToList()};
+            return result;
+        }
+
+        private SlackResponseVM GetKanban2(string channelName)
+        {
+            HtmlConvertService service=new HtmlConvertService();
+            
+            var kanban = GetKanbanItems(channelName);
+            List<Image> images = new List<Image>();
+            foreach (var state in kanban.KanbanCatorgory)
+            {
+                var c = BuildKanbanHtmlForOneColumn(state, kanban.KanbanItems[state]);
+                var image = service.ConvertToJpeg(c);
+                images.Add(image);
+            }
+            Bitmap bmp = images.MergeHorizontally();
+            
+            
+            Bitmap b = new Bitmap(bmp);
+            AzureService azService=new AzureService();
+            var path =azService.Upload(b, "kanban");
+            
+            
+            return new SlackResponseVM() { text = path};
+        }
+
+        private string BuildKanbanHtml(KanbanHtmlVM kanban)
+        {
+            StringBuilder sb=new StringBuilder();
+            sb.Append("<html><head><title>Kanban</title></head><body><form id='form'><div id='board'>");
+            foreach (var state in kanban.KanbanCatorgory)
+            {
+                var key = state;
+                var values = kanban.KanbanItems[key];
+                sb.Append("<div style='float:left;' >" + "<div style='text-align:center'>" + (string.IsNullOrEmpty(key)?"None":key)+"</div><div>");
+                foreach (var value in values)
+                {
+                    sb.Append("<div style='margin:20px;width:250px;border: 2px solid;' >");
+
+                        sb.Append("<div style='height:10px;background-color: #3B89F6;color:#3B89F6;'>" + "</div>");
+
+                        sb.Append("<div style='padding:10px'>");
+                            sb.Append("<div style='position: relative;float:left;color:#3B89F6;'>"+value.FormattedID+"</div>");
+                            sb.Append("<div style='position: relative;float:right;color:#0033CC'>" + value.Owner + "</div>");
+                            sb.Append("<div style='clear:both'>" + value.KanbanState + "</div>");
+                            sb.Append("<div>" + value.Name + "</div>");
+
+                        sb.Append("</div>");
+
+                    sb.Append("</div>");
+                }
+
+                sb.Append("</div></div>");
+
+            }
+            sb.Append("</div></div></body></html>");
+            return sb.ToString();
+        }
+
+        private string BuildKanbanHtmlForOneColumn(string state, List<SchedulableArtifact> items )
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("<html><head><title>Kanban</title></head><body><form id='form'><div id='board'>");
+            
+            
+            var key = state;
+            var values = items;
+            sb.Append("<div style='float:left;' >" + "<div style='text-align:center;font-weight:bold'><h3>" + (string.IsNullOrEmpty(key) ? "None" : key) + "</h3></div><div>");
+            foreach (var value in values)
+            {
+                sb.Append("<div style='margin:20px;width:250px;border: 2px solid;' >");
+
+                sb.Append("<div style='height:10px;background-color: #3B89F6;color:#3B89F6;'>" + "</div>");
+
+                sb.Append("<div style='padding:10px'>");
+                sb.Append("<div style='position: relative;float:left;color:#3B89F6;'>" + value.FormattedID + "</div>");
+                sb.Append("<div style='position: relative;float:right;font-weight:bold;margin-top:5px;'>" + value.Owner + "</div>");
+                //sb.Append("<div style='clear:both'>" + value.KanbanState + "</div>");
+                sb.Append("<div style='clear:both; margin-top:5px'>" + value.Name + "</div>");
+
+                sb.Append("</div>");
+
+                sb.Append("</div>");
+            }
+
+            sb.Append("</div></div>");
+
+            
+            sb.Append("</div></div></body></html>");
+            return sb.ToString();
+        }
 
         private SlackResponseVM GetItem(string itemStr, string channelName)
         {
             
             string type;
+
+            //Get defect/user story
             if (itemStr.StartsWith("DE", StringComparison.CurrentCultureIgnoreCase))
             {
                 type = "defect";
@@ -88,21 +219,19 @@ namespace Rally2Slack.Web.Services
             {
                 type = "hierarchicalrequirement";
             }
-            RallyService service = new RallyService(RallyConfiguration.GetConfigurationByChannel(channelName));
+
+            //Get item from Rally by channel and FormattedID
+            RallyService service = new RallyService(RallyService.RallyConfiguration.GetConfigurationByChannel(channelName));
             var result = service.GetItem(type, itemStr);
             if (result.Results == null || !result.Results.Any())
             {
                 return new SlackResponseVM() { text = "_Nothing here but a wasted slack message_" };
             }
-            List<string> welcomes = new List<string> { "how can I help all of you slackers?", "you called?", "Wassup?", "I think I heard my name", "Yes?", "At your service" };
-            Random r = new Random((int)DateTime.Now.Ticks);
-            ;
-            //PostSlack(result.Results.First()["Description"],msg.token);
+            
+            //get first result
             var item = result.Results.First();
             string itemBody = (item["Description"] as string).HtmlToPlainText();
             string itemName = (item["Name"] as string);
-
-
 
             return new SlackResponseVM() { text = "_" + GetWelcomeMsg() + "_" + "\r\n\r\n" + "*" + itemStr.ToUpper() + "*\r\n" + "*" + itemName + "*" + "\r\n" + itemBody };
         }
@@ -113,6 +242,7 @@ namespace Rally2Slack.Web.Services
             Random r = new Random((int)DateTime.Now.Ticks);
             return welcomes[r.Next(0, welcomes.Count - 1)];
         }
+
         public SlackResponseVM RequestRallyKanban(Stream stream)
         {
             StreamReader sr = new StreamReader(stream);
@@ -136,7 +266,7 @@ namespace Rally2Slack.Web.Services
             {
                 type = "hierarchicalrequirement";
             }
-            RallyService service = new RallyService(RallyConfiguration.GetConfigurationByChannel(msg.ChannelName));
+            RallyService service = new RallyService(RallyService.RallyConfiguration.GetConfigurationByChannel(msg.ChannelName));
             var result = service.GetItem(type, itemStr);
             if (result.Results == null || !result.Results.Any())
             {

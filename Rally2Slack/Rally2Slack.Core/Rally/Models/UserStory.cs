@@ -5,14 +5,16 @@ using System.Text;
 
 namespace Rally2Slack.Core.Rally.Models
 {
-    internal class UserStory : SchedulableArtifact, IParsable
+    public  class UserStory : SchedulableArtifact, IParsable
     {
         public void FromDynamicJsonObject(dynamic source)
         {
             FormattedID = source["FormattedID"];
             ObjectID = source["ObjectID"];
             Name = source["Name"];
-            KanbanState = source["c_KanbanState"];
+            KanbanState = source["c_KanbanState"]??"";
+            KanbanProgress = source["c_KanbanProgress"] ?? "";
+            ScheduleState = source["ScheduleState"] ?? "";
             Description = source["Description"];
             if (source["Owner"] == null)
             {

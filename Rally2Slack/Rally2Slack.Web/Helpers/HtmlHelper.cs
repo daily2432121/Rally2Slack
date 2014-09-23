@@ -5,6 +5,7 @@ using System.Linq;
 using System.Web;
 using HtmlAgilityPack;
 
+
 namespace Rally2Slack.Web.Helpers
 {
     public class HtmlToText
@@ -25,27 +26,9 @@ namespace Rally2Slack.Web.Helpers
         }
 
 
-        public string Convert(string path)
-        {
-            HtmlDocument doc = new HtmlDocument();
-            doc.Load(path);
 
-            StringWriter sw = new StringWriter();
-            ConvertTo(doc.DocumentNode, sw);
-            sw.Flush();
-            return sw.ToString();
-        }
-
-        public string ConvertHtml(string html)
-        {
-            HtmlDocument doc = new HtmlDocument();
-            doc.LoadHtml(html);
-
-            StringWriter sw = new StringWriter();
-            ConvertTo(doc.DocumentNode, sw);
-            sw.Flush();
-            return sw.ToString();
-        }
+        private int _tlevel = 0;
+        
 
         private void ConvertContentTo(HtmlNode node, TextWriter outText)
         {
@@ -85,12 +68,17 @@ namespace Rally2Slack.Web.Helpers
                     if (html.Trim().Length > 0)
                     {
                         outText.Write(HtmlEntity.DeEntitize(html));
+                        
                     }
                     break;
 
                 case HtmlNodeType.Element:
                     switch (node.Name)
                     {
+                        case "b":
+                            // treat paragraphs as crlf
+                            outText.Write("*");
+                            break;
                         case "p":
                             // treat paragraphs as crlf
                             outText.Write("\r\n");
@@ -103,12 +91,36 @@ namespace Rally2Slack.Web.Helpers
                             // treat paragraphs as crlf
                             outText.Write("\r\n");
                             break;
+                        case "ul":
+                            // treat paragraphs as crlf
+                            outText.Write("\r\n");
+                            _tlevel += 1;
+                            break;
+                        case "li":
+                            // treat paragraphs as crlf
+                            var ts = string.Join("", Enumerable.Repeat("\t", _tlevel));
+                            outText.Write("\r\n");
+                            outText.Write(ts);
+                            break;
                     }
 
                     if (node.HasChildNodes)
                     {
                         ConvertContentTo(node, outText);
                     }
+
+                    switch (node.Name)
+                    {
+                        case "b":
+                            outText.Write("*");
+                            break;
+                        case "ul":
+                            _tlevel -= 1;
+                            break;
+                        default:
+                            break;
+                    }
+
                     break;
             }
         }

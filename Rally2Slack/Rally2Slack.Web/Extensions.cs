@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -53,14 +54,6 @@ namespace Rally2Slack.Web
 
         public static string HtmlToPlainText(this string htmlString)
         {
-            //var output = new StringBuilder();
-            //HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
-            //doc.Load(htmlString.ToStream());
-            //foreach (HtmlNode node in doc.DocumentNode.SelectNodes("//*"))
-            //{
-            //    output.AppendLine(node.InnerText.ToString() + Environment.NewLine);
-            //}
-            //return output.ToString();
             HtmlToText h=new HtmlToText();
             return h.ConvertFromString(htmlString);
         }
@@ -73,6 +66,34 @@ namespace Rally2Slack.Web
             writer.Flush();
             stream.Position = 0;
             return stream;
+        }
+
+
+
+        public static Bitmap MergeHorizontally(this List<Image> images)
+        {
+
+            int outputImageWidth = images.Sum(i => i.Width);
+            int outputImageHeight = images.Max(i => i.Height);
+
+            
+
+            Bitmap outputImage = new Bitmap(outputImageWidth, outputImageHeight);
+            
+            using (Graphics graphics = Graphics.FromImage(outputImage))
+            {
+                graphics.Clear(Color.White);  
+                int totalWidth = 0;
+                for (var i=0;i<images.Count;i++)
+                {
+                    graphics.DrawImage(images[i], new Rectangle(new Point(totalWidth, 0), images[i].Size),new Rectangle(new Point(), images[i].Size), GraphicsUnit.Pixel);
+                    totalWidth += images[i].Width;
+                    images[i].Dispose();
+                }
+                
+            }
+            
+            return outputImage;
         }
     }
 }
