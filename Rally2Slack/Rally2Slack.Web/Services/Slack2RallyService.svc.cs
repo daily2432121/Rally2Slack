@@ -53,9 +53,6 @@ namespace Rally2Slack.Web.Services
 
             string itemStr = m.Groups[0].Value;
             return GetItem(itemStr, msg.ChannelName);
-
-
-            
         }
         
         //old text kanban, obsolete for time being
@@ -110,8 +107,6 @@ namespace Rally2Slack.Web.Services
                     dict = list.GroupBy(e => e.ScheduleState).ToDictionary(e => e.Key, e => e.ToList());
                     break;
             }
-           
-            
             KanbanHtmlVM result = new KanbanHtmlVM() {KanbanItems = dict, KanbanCatorgory = dict.Keys.ToList()};
             return result;
         }
@@ -221,7 +216,8 @@ namespace Rally2Slack.Web.Services
             }
 
             //Get item from Rally by channel and FormattedID
-            RallyService service = new RallyService(RallyService.RallyConfiguration.GetConfigurationByChannel(channelName));
+            var config = RallyService.RallyConfiguration.GetConfigurationByChannel(channelName);
+            RallyService service = new RallyService(config);
             var result = service.GetItem(type, itemStr);
             if (result.Results == null || !result.Results.Any())
             {
@@ -230,10 +226,16 @@ namespace Rally2Slack.Web.Services
             
             //get first result
             var item = result.Results.First();
-            string itemBody = (item["Description"] as string).HtmlToPlainText();
             string itemName = (item["Name"] as string);
+            string itemBody = (item["Description"] as string).HtmlToPlainText();
+            var images = (item["Description"] as string).GetAllImageSrcs();
 
-            return new SlackResponseVM() { text = "_" + GetWelcomeMsg() + "_" + "\r\n\r\n" + "*" + itemStr.ToUpper() + "*\r\n" + "*" + itemName + "*" + "\r\n" + itemBody };
+            AzureService aService = new AzureService();
+            var firstImage =aService.Upload(images, itemName, config.UserName, config.Password);
+
+            string imagesAsAttached = string.Join("\r\n", firstImage);
+
+            return new SlackResponseVM() { text = "_" + GetWelcomeMsg() + "_" + "\r\n\r\n" + "*" + itemStr.ToUpper() + "*\r\n" + "*" + itemName + "*" + "\r\n" + itemBody + "\r\n" + imagesAsAttached };
         }
 
         private string GetWelcomeMsg()
@@ -242,7 +244,7 @@ namespace Rally2Slack.Web.Services
             Random r = new Random((int)DateTime.Now.Ticks);
             return welcomes[r.Next(0, welcomes.Count - 1)];
         }
-
+        //not in used
         public SlackResponseVM RequestRallyKanban(Stream stream)
         {
             StreamReader sr = new StreamReader(stream);

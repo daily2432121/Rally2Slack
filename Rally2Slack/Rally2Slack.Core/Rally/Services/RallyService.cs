@@ -132,8 +132,8 @@ namespace Rally2Slack.Core.Rally.Service
                     GetDEAnalyticsConfiguration(),
                     GetEncariConfiguration(),
                     GetFinoMarketingConfiguration(),
-                    //GetSlackTestConfiguration()
-                    GetSlackTestForMarketingConfiguration()
+                    GetSlackTestConfiguration()
+                    //GetSlackTestForMarketingConfiguration()
 
                 };
                 return configs;

@@ -25,10 +25,19 @@ namespace Rally2Slack.Web.Helpers
             return sw.ToString();
         }
 
+        public List<string> GetAllImageSrcs(string str)
+        {
+            HtmlDocument doc = new HtmlDocument();
+            doc.Load(str.ToStream());
 
+            HtmlNodeCollection imgs = new HtmlNodeCollection(doc.DocumentNode.ParentNode);
+            imgs = doc.DocumentNode.SelectNodes("//img");
+            var result = imgs.Select(i => @"https://rally1.rallydev.com"+i.Attributes[@"src"].Value).ToList();
+            return result;
+        }
 
         private int _tlevel = 0;
-        
+        private bool _bTag = false;
 
         private void ConvertContentTo(HtmlNode node, TextWriter outText)
         {
@@ -67,7 +76,15 @@ namespace Rally2Slack.Web.Helpers
                     // check the text is meaningful and not a bunch of whitespaces
                     if (html.Trim().Length > 0)
                     {
+                        if (_bTag)
+                        {
+                            outText.Write("*");
+                        }
                         outText.Write(HtmlEntity.DeEntitize(html));
+                        if (_bTag)
+                        {
+                            outText.Write("*");
+                        }
                         
                     }
                     break;
@@ -76,8 +93,8 @@ namespace Rally2Slack.Web.Helpers
                     switch (node.Name)
                     {
                         case "b":
+                            _bTag = true;
                             // treat paragraphs as crlf
-                            outText.Write("*");
                             break;
                         case "p":
                             // treat paragraphs as crlf
@@ -98,8 +115,10 @@ namespace Rally2Slack.Web.Helpers
                             break;
                         case "li":
                             // treat paragraphs as crlf
+                            
                             var ts = string.Join("", Enumerable.Repeat("\t", _tlevel));
                             outText.Write("\r\n");
+                            outText.Write(">");
                             outText.Write(ts);
                             break;
                     }
@@ -112,12 +131,10 @@ namespace Rally2Slack.Web.Helpers
                     switch (node.Name)
                     {
                         case "b":
-                            outText.Write("*");
+                            _bTag = false;
                             break;
                         case "ul":
                             _tlevel -= 1;
-                            break;
-                        default:
                             break;
                     }
 

@@ -58,6 +58,13 @@ namespace Rally2Slack.Web
             return h.ConvertFromString(htmlString);
         }
 
+        public static List<string> GetAllImageSrcs(this string htmlString)
+        {
+            HtmlToText h = new HtmlToText();
+            return  h.GetAllImageSrcs(htmlString);
+
+        }
+
         public static Stream ToStream(this string str)
         {
             MemoryStream stream = new MemoryStream();

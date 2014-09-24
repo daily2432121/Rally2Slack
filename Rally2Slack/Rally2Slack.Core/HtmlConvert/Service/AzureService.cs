@@ -1,10 +1,16 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
+using System.Threading.Tasks;
+using System.Web;
 using System.Windows.Forms;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Auth;
@@ -40,6 +46,33 @@ namespace Rally2Slack.Core.HtmlConvert.Service
             var path =cbb.Uri.AbsoluteUri;
             //string sas = bcon.GetSharedAccessSignature(shared60days, "sharedKanban");
             return path;
+        }
+
+
+        public List<string> Upload(List<string> imgSrc, string fileName, string userName ,string password)
+        {
+            Image img;
+            ConcurrentBag<string> result = new ConcurrentBag<string>();
+            var credential = new NetworkCredential() {UserName = userName, Password = password};
+            Task.WaitAll(imgSrc.Select(u => Task.Factory.StartNew(() =>
+            {
+                HttpWebRequest request = (HttpWebRequest) WebRequest.Create(u);
+                request.Method = "Get";
+                request.Credentials = credential;
+                request.PreAuthenticate = true;
+                request.Timeout = 15000;
+                using (var response = request.GetResponse())
+                {
+                    using (var stream = response.GetResponseStream())
+                    {
+                        img = Image.FromStream(stream);
+                    }
+                }
+                string azureUrl = Upload(img, fileName);
+                result.Add(azureUrl);
+            })).ToArray());
+
+            return result.ToList();
         }
 
         
