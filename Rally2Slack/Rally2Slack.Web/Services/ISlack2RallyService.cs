@@ -20,7 +20,11 @@ namespace Rally2Slack.Web.Services
         
         [OperationContract()]
         [WebInvoke(UriTemplate = "Rally/Details", Method = "POST", ResponseFormat = WebMessageFormat.Json)]
-        SlackResponseVM RequestRallyItem(Stream slackBoday);
+        SlackResponseVM RequestRallyItem(Stream slackBody);
+
+        [OperationContract()]
+        [WebInvoke(UriTemplate = "Rally/DetailsByCmd", Method = "POST", ResponseFormat = WebMessageFormat.Json)]
+        SlackResponseVM RequestRallyItemBySlashCommand(Stream slackBody);
 
 
         //For testting

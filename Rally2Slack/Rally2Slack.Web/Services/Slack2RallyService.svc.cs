@@ -7,12 +7,14 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.ServiceModel;
 using System.ServiceModel.Activation;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Web;
 using System.Web.Hosting;
 using DotNetOpenAuth.Messaging;
 using Microsoft.SqlServer.Server;
@@ -32,13 +34,14 @@ namespace Rally2Slack.Web.Services
     public class Slack2RallyService : ISlack2RallyService
     {
         
-        public SlackResponseVM RequestRallyItem(Stream stream)
+        public SlackResponseVM RequestRallyItem(Stream slackBody)
         {
-            StreamReader sr = new StreamReader(stream);
+            StreamReader sr = new StreamReader(slackBody);
             
             string str = sr.ReadToEnd();
             
             SlackMsg msg= SlackMsg.FromString(str);
+            msg.MessageType = SlackMsgType.OutgoingWebhooks;
             if (str.ToLower().Contains("kanban"))
             {
                 return GetKanban2(msg.ChannelName);
@@ -54,7 +57,46 @@ namespace Rally2Slack.Web.Services
             string itemStr = m.Groups[0].Value;
             return GetItem(itemStr, msg.ChannelName);
         }
-        
+
+        public SlackResponseVM RequestRallyItemBySlashCommand(Stream slackBody)
+        {
+            try
+            {
+                StreamReader sr = new StreamReader(slackBody);
+                
+                string str = sr.ReadToEnd();
+                
+                SlackMsg msg = SlackMsg.FromString(str);
+                msg.MessageType = SlackMsgType.SlashCommand;
+                msg.ChannelName = "slack_dev_test";
+                if (msg.Text.Contains("kanban"))
+                {
+                    return GetKanban2(msg.ChannelName);
+                }
+                Regex regex = new Regex(@"((US|Us|uS|us)\d{0,9})|(((dE|de|De|DE)\d{0,9}))");
+                Match m = regex.Match(msg.Text);
+
+                if (!m.Success)
+                {
+                    return new SlackResponseVM() {text = "_Whuaaat?_"};
+                }
+
+                string itemStr = m.Groups[0].Value;
+                var result =  GetItem(itemStr, msg.ChannelName);
+                //result.text = "ab";
+                PostSlack(result.text, msg.ChannelName);
+                return result;
+
+            }
+            catch (Exception e)
+            {
+                return new SlackResponseVM() {text = e.ToString()};
+            }
+            
+        }
+
+
+
         //old text kanban, obsolete for time being
         private SlackResponseVM GetKanban(string channelName)
         {
@@ -200,7 +242,7 @@ namespace Rally2Slack.Web.Services
             return sb.ToString();
         }
 
-        private SlackResponseVM GetItem(string itemStr, string channelName)
+        private SlackResponseVM GetItem(string itemStr, string channelName, bool postBack = false)
         {
             
             string type;
@@ -229,13 +271,21 @@ namespace Rally2Slack.Web.Services
             string itemName = (item["Name"] as string);
             string itemBody = (item["Description"] as string).HtmlToPlainText();
             var images = (item["Description"] as string).GetAllImageSrcs();
+            if (images != null)
+            {
+                AzureService aService = new AzureService();
+                var firstImage = aService.Upload(images, itemName, config.UserName, config.Password);
 
-            AzureService aService = new AzureService();
-            var firstImage =aService.Upload(images, itemName, config.UserName, config.Password);
+                string imagesAsAttached = string.Join("\r\n", firstImage);
 
-            string imagesAsAttached = string.Join("\r\n", firstImage);
+                return new SlackResponseVM() {text = "_" + GetWelcomeMsg() + "_" + "\r\n\r\n" + "*" + itemStr.ToUpper() + "*\r\n" + "*" + itemName + "*" + "\r\n" + itemBody + "\r\n" + imagesAsAttached};
+            }
+            else
+            {
+                return new SlackResponseVM() { text = "_" + GetWelcomeMsg() + "_" + "\r\n\r\n" + "*" + itemStr.ToUpper() + "*\r\n" + "*" + itemName + "*" + "\r\n" + itemBody };
+            }
 
-            return new SlackResponseVM() { text = "_" + GetWelcomeMsg() + "_" + "\r\n\r\n" + "*" + itemStr.ToUpper() + "*\r\n" + "*" + itemName + "*" + "\r\n" + itemBody + "\r\n" + imagesAsAttached };
+
         }
 
         private string GetWelcomeMsg()
@@ -324,9 +374,9 @@ namespace Rally2Slack.Web.Services
             try
             {
                 IncomingWebHookResponseVM msg = new IncomingWebHookResponseVM();
-                msg.slack_message = message;
-                msg.slack_sender = "slackbot";
-                msg.slack_channel = "@cheng.huang";
+                msg.text = message;
+                msg.username= "rallycat";
+                msg.channel= "#"+channel;
                 var url2 = new Uri(GetSlackPostUrl(token));
                 HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(url2);
                 request.ContentType = "application/json; charset=utf-8";
@@ -335,13 +385,17 @@ namespace Rally2Slack.Web.Services
                 request.UseDefaultCredentials = true;
                 request.ReadWriteTimeout = 1000000;
                 string jsonBody = ToJSON(msg);
-                request.ContentLength = jsonBody.Length;
+                //request.ContentLength = jsonBody.Length;
                 if (!string.IsNullOrEmpty(jsonBody))
                 {
-                    using (StreamWriter writer = new StreamWriter(request.GetRequestStream()))
+                    using (Stream s = request.GetRequestStream())
                     {
-                        writer.Write(jsonBody);
+                        using (StreamWriter writer = new StreamWriter(s))
+                        {
+                            writer.Write(jsonBody);
+                        }    
                     }
+                    
                 }
                 else
                 {
@@ -349,14 +403,18 @@ namespace Rally2Slack.Web.Services
                 }
 
 
-
-                var result = (HttpWebResponse)request.GetResponse();
-
-                if (result.StatusCode != HttpStatusCode.OK)
+                
+                using (HttpWebResponse response = (HttpWebResponse) request.GetResponse())
                 {
-                    Debug.WriteLine("SlackPostBack::Rest:Fail to send" + result.StatusCode);
-                    return false;
+                    if (response.StatusCode != HttpStatusCode.OK)
+                    {
+                        Debug.WriteLine("SlackPostBack::Rest:Fail to send" + response.StatusCode);
+                        return false;
+                    }
                 }
+                
+
+                
             }
             catch (Exception ex)
             {
@@ -375,7 +433,7 @@ namespace Rally2Slack.Web.Services
             using (MemoryStream stream = new MemoryStream())
             {
                 s.WriteObject(stream, obj);
-                return Encoding.Default.GetString(stream.ToArray());
+                return Encoding.UTF8.GetString(stream.ToArray());
             }
 
             //Else

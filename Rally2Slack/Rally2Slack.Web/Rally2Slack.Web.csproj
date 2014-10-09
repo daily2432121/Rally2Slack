@@ -263,6 +263,7 @@
     <Content Include="KanbanImage.aspx" />
     <Content Include="packages.config" />
     <Content Include="ApplicationInsights.config" />
+    <None Include="Properties\PublishProfiles\RallyCat.pubxml" />
     <None Include="Properties\PublishProfiles\Slack2Rally %282%29.pubxml" />
     <None Include="Properties\PublishProfiles\Slack2Rally %283%29.pubxml" />
     <None Include="Properties\PublishProfiles\Slack2Rally %284%29.pubxml" />

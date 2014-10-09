@@ -32,6 +32,10 @@ namespace Rally2Slack.Web.Helpers
 
             HtmlNodeCollection imgs = new HtmlNodeCollection(doc.DocumentNode.ParentNode);
             imgs = doc.DocumentNode.SelectNodes("//img");
+            if (imgs == null || !imgs.Any())
+            {
+                return null;
+            }
             var result = imgs.Select(i => @"https://rally1.rallydev.com"+i.Attributes[@"src"].Value).ToList();
             return result;
         }

@@ -22,15 +22,15 @@ namespace Rally2Slack.Core.HtmlConvert.Service
     {
         public string Upload(Image img, string fileName)
         {
-            StorageCredentials sc = new StorageCredentials("kanbanimages", "uQ6uECREYvii9I1yDicadX0ftY3AdIBQstsRtbtdV2tgxHhOi6zxIh4EyNxQozWiNjQmRXQigXJtiMZNyn9A4Q==");    
+            StorageCredentials sc = new StorageCredentials("rallykanban", "MC3q6W6/UDxZJMKwA7W4S2TQ/U/NTICg1cDEetfyFrdkX+a8LaVGhiqtrdvblPD6NBZ8SyeR2OnoLUlw+1Twvg==");    
             CloudStorageAccount acc = new CloudStorageAccount(sc,false);
             CloudBlobClient bc = acc.CreateCloudBlobClient();
             CloudBlobContainer bcon = bc.GetContainerReference("kanbanimage");
             CloudBlockBlob cbb = bcon.GetBlockBlobReference(fileName + DateTime.Now.ToString("o").Replace(":", "_")+".jpg");
-            cbb.Properties.ContentType = @"image\jpg";
+            cbb.Properties.ContentType = @"image\png";
             using (MemoryStream ms = new MemoryStream())
             {
-                img.Save(ms, ImageFormat.Jpeg);
+                img.Save(ms, ImageFormat.Png);
                 byte[] b = ms.GetBuffer();
                 cbb.UploadFromByteArray(b,0,b.Count());
             }

@@ -6,6 +6,12 @@ using System.Web;
 
 namespace Rally2Slack.Web.Messages
 {
+    public enum SlackMsgType
+    {
+        OutgoingWebhooks,
+        SlashCommand
+    }
+
     public class SlackMsg
     {
         public string Token { get; set; }
@@ -19,6 +25,14 @@ namespace Rally2Slack.Web.Messages
         public string UserName { get; set; }
         public string TriggerWord { get; set; }
         public string Text { get; set; }
+        //For Slack Command
+        public string Command { get; set; }
+
+        //Type
+        public SlackMsgType MessageType { get; set; }
+
+        	
+	
 
         public static SlackMsg FromString(string source)
         {
@@ -71,6 +85,10 @@ namespace Rally2Slack.Web.Messages
                 if (en.Contains("text"))
                 {
                     msg.Text = element[1];
+                }
+                if (en.Contains("command"))
+                {
+                    msg.Command = element[1];
                 }
             }
             return msg;

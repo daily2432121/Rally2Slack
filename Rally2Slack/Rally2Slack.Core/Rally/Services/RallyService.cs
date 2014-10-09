@@ -132,7 +132,8 @@ namespace Rally2Slack.Core.Rally.Service
                     GetDEAnalyticsConfiguration(),
                     GetEncariConfiguration(),
                     GetFinoMarketingConfiguration(),
-                    GetSlackTestConfiguration()
+                    GetSlackTestConfiguration(),
+                    GetApricotConfiguration()
                     //GetSlackTestForMarketingConfiguration()
 
                 };
@@ -177,7 +178,7 @@ namespace Rally2Slack.Core.Rally.Service
                     ProjectID = 20523617147,
                     WorkSpaceID = 13073262940,
                     KanbanSort = KanbanSortCategory.CatagorizedByScheduleState,
-                    Channels = new List<string>() {  "de_analytics"}
+                    Channels = new List<string>() {  "de_analytics" ,"de-analytics-private"}
                 };
             }
 
@@ -206,7 +207,7 @@ namespace Rally2Slack.Core.Rally.Service
                     ProjectID = 13073500360,
                     WorkSpaceID = 13073262940,
                     KanbanSort = KanbanSortCategory.CatagorizedByKanbanState,
-                    Channels = new List<string>() {"slacktesting"}
+                    Channels = new List<string>() {"slacktesting","slack_dev_test"}
                 };
             }
 
@@ -238,6 +239,22 @@ namespace Rally2Slack.Core.Rally.Service
                     WorkSpaceID = 13073262940,
                     KanbanSort = KanbanSortCategory.CatagorizedByScheduleState,
                     Channels = new List<string>() { "marketing" }
+                };
+            }
+
+
+
+            public static RallyConfiguration GetApricotConfiguration()
+            {
+                return new RallyConfiguration()
+                {
+                    Team = "Apricot",
+                    UserName = "cheng.huang@finoconsulting.com",
+                    Password = "570124yaya",
+                    ProjectID = 16835562806,
+                    WorkSpaceID = 13073262940,
+                    KanbanSort = KanbanSortCategory.CatagorizedByKanbanProgress,
+                    Channels = new List<string>() { "apricot", "apricot-dev" }
                 };
             }
         }
