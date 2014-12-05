@@ -44,7 +44,7 @@ namespace Rally2Slack.Core.HtmlConvert.Service
                 var bytes = ToBitMapArray(new Uri(url));
                 var stamp = DateTime.Now.ToString("o").Replace(":", "_");
                 var root = HostingEnvironment.MapPath("~");
-                string name = @"Kanban_" + stamp + ".jpg";
+                string name = @"Kanban_" + stamp + ".png";
                 using (Image img = Image.FromStream(new MemoryStream(bytes)))
                 {
 

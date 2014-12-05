@@ -133,7 +133,8 @@ namespace Rally2Slack.Core.Rally.Service
                     GetEncariConfiguration(),
                     GetFinoMarketingConfiguration(),
                     GetSlackTestConfiguration(),
-                    GetApricotConfiguration()
+                    GetApricotConfiguration(),
+                    GetPearsonAnalyticsConfiguration()
                     //GetSlackTestForMarketingConfiguration()
 
                 };
@@ -255,6 +256,20 @@ namespace Rally2Slack.Core.Rally.Service
                     WorkSpaceID = 13073262940,
                     KanbanSort = KanbanSortCategory.CatagorizedByKanbanProgress,
                     Channels = new List<string>() { "apricot", "apricot-dev" }
+                };
+            }
+
+            public static RallyConfiguration GetPearsonAnalyticsConfiguration()
+            {
+                return new RallyConfiguration()
+                {
+                    Team = "PearsonAnalytics",
+                    UserName = "cheng.huang@finoconsulting.com",
+                    Password = "570124yaya",
+                    ProjectID = 25094138731,
+                    WorkSpaceID = 13073262940,
+                    KanbanSort = KanbanSortCategory.CatagorizedByScheduleState,
+                    Channels = new List<string>() { "pearson_analytics" }
                 };
             }
         }
