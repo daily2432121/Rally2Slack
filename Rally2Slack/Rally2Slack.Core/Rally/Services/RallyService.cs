@@ -163,7 +163,7 @@ namespace Rally2Slack.Core.Rally.Service
                     ProjectID = 13073500360,
                     WorkSpaceID = 13073262940,
                     KanbanSort = KanbanSortCategory.CatagorizedByKanbanState,
-                    Channels = new List<string>() {"directenergy", "directenergy-ios", "ex-directenergy-ng", "ex-directenergy-dev"}
+                    Channels = new List<string>() {"directenergy", "directenergy-ios", "ex-directenergy-ng", "ex-directenergy-dev","directenergy-support","capacity-models"}
                 };
             }
 

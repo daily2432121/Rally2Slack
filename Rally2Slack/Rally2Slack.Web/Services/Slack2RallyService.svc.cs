@@ -24,6 +24,9 @@ using Rally2Slack.Core.Rally.Models;
 using Rally2Slack.Core.Rally.Service;
 using Rally2Slack.Web.Messages;
 using Rally2Slack.Web.ViewModels;
+using Google.Apis.Customsearch.v1.Data;
+using Google.Apis.Customsearch.v1;
+using Google.Apis.Services;
 
 namespace Rally2Slack.Web.Services
 {
@@ -51,11 +54,38 @@ namespace Rally2Slack.Web.Services
             
             if (!m.Success)
             {
-                return new SlackResponseVM() { text = "_Whuaaat?_" };
+                var keyword = msg.Text.Replace(msg.TriggerWord,"");
+                return GetFirstGoogleImage(keyword);
+
             }
 
             string itemStr = m.Groups[0].Value;
             return GetItem(itemStr, msg.ChannelName);
+        }
+
+        public SlackResponseVM GetFirstGoogleImage(string keyword)
+        {
+            CustomsearchService service = new CustomsearchService(new BaseClientService.Initializer(){ApiKey = "AIzaSyAMlvbcGscP5VLDUcT1eXU0d0M1NszqWZw"});
+            //https://www.googleapis.com/customsearch/v1?key=AIzaSyAMlvbcGscP5VLDUcT1eXU0d0M1NszqWZw&cx=000120523936578647521:xln_vnvdaiy&q=flower&searchType=image&fileType=jpg&imgSize=small&alt=json
+            
+
+            Google.Apis.Customsearch.v1.CseResource.ListRequest listRequest= service.Cse.List(keyword);
+            
+            listRequest.Cx = "000120523936578647521:xln_vnvdaiy";
+            listRequest.SearchType=Google.Apis.Customsearch.v1.CseResource.ListRequest.SearchTypeEnum.Image;
+            listRequest.FileType = "jpg";
+            listRequest.ImgSize = Google.Apis.Customsearch.v1.CseResource.ListRequest.ImgSizeEnum.Small;
+            
+            listRequest.Alt = Google.Apis.Customsearch.v1.CseResource.ListRequest.AltEnum.Json;
+            
+            Search search = listRequest.Execute();
+            
+            if (search.Items != null && search.Items.Any())
+            {
+                var imgPath = search.Items[0].Link;
+                return new SlackResponseVM() { text = imgPath };
+            }
+            return new SlackResponseVM() { text = "_Whuaaat?_" };
         }
 
         public SlackResponseVM RequestRallyItemBySlashCommand(Stream slackBody)
