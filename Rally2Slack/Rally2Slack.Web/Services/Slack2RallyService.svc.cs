@@ -49,7 +49,7 @@ namespace Rally2Slack.Web.Services
             {
                 return GetKanban2(msg.ChannelName);
             }
-            Regex regex = new Regex(@"((US|Us|uS|us)\d{0,9})|(((dE|de|De|DE)\d{0,9}))");
+            Regex regex = new Regex(@"((US|Us|uS|us)\d{1,9})|(((dE|de|De|DE)\d{1,9}))");
             Match m = regex.Match(msg.Text);
             
             if (!m.Success)
