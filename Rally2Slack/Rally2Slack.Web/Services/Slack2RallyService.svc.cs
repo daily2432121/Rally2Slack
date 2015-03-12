@@ -74,8 +74,8 @@ namespace Rally2Slack.Web.Services
             listRequest.Cx = "000120523936578647521:xln_vnvdaiy";
             listRequest.SearchType=Google.Apis.Customsearch.v1.CseResource.ListRequest.SearchTypeEnum.Image;
             listRequest.FileType = "jpg";
-            listRequest.ImgSize = Google.Apis.Customsearch.v1.CseResource.ListRequest.ImgSizeEnum.Small;
-            
+            //listRequest.ImgSize = Google.Apis.Customsearch.v1.CseResource.ListRequest.ImgSizeEnum.Small;
+            listRequest.Safe = Google.Apis.Customsearch.v1.CseResource.ListRequest.SafeEnum.High;
             listRequest.Alt = Google.Apis.Customsearch.v1.CseResource.ListRequest.AltEnum.Json;
             
             Search search = listRequest.Execute();
