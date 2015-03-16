@@ -19,6 +19,8 @@ namespace Rally2Slack.Core.Rally.Models
         [DataMember]
         public string ScheduleState { get; set; }
         [DataMember]
+        public string STEPKanbanState { get; set; }
+        [DataMember]
         public string Description { get; set; }
         [DataMember]
         public string FormattedID { get; set; }

@@ -174,6 +174,10 @@ namespace Rally2Slack.Web.Services
                     list = service.GetKanban().OrderBy(e => e.ScheduleState).ThenBy(e => e.Owner).ToList();
                     dict = list.GroupBy(e => e.ScheduleState).ToDictionary(e => e.Key, e => e.ToList());
                     break;
+                case RallyService.KanbanSortCategory.CatagorizedBySTEPKanbanState:
+                    list = service.GetKanban().OrderBy(e => e.STEPKanbanState).ThenBy(e => e.Owner).ToList();
+                    dict = list.GroupBy(e => e.STEPKanbanState).ToDictionary(e => e.Key, e => e.ToList());
+                    break;
                 default:
                     list = kanban.OrderBy(e => e.ScheduleState).ThenBy(e => e.Owner).ToList();
                     dict = list.GroupBy(e => e.ScheduleState).ToDictionary(e => e.Key, e => e.ToList());

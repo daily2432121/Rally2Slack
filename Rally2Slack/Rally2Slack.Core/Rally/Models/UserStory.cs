@@ -15,6 +15,7 @@ namespace Rally2Slack.Core.Rally.Models
             KanbanState = source["c_KanbanState"]??"";
             KanbanProgress = source["c_KanbanProgress"] ?? "";
             ScheduleState = source["ScheduleState"] ?? "";
+            STEPKanbanState = source["c_STEPKanban"] ?? "";
             Description = source["Description"];
             if (source["Owner"] == null)
             {

@@ -82,7 +82,7 @@ namespace Rally2Slack.Core.Rally.Service
             request = new Request("defect");
             request.Project = "/project/" + Config.ProjectID;
             request.Workspace = "/workspace/" + Config.WorkSpaceID;
-            request.Fetch = new List<string>() {"Name", "ObjectID", "FormattedID", "c_KanbanState", "c_KanbanProgress","Description", "ScheduleState", "Owner"};
+            request.Fetch = new List<string>() {"Name", "ObjectID", "FormattedID", "c_KanbanState","c_STEPKanban", "c_KanbanProgress","Description", "ScheduleState", "Owner"};
             request.Query = new Query("Iteration.Name", Query.Operator.Equals, iterationName);
             queryResult = restApi.Query(request);
             List<SchedulableArtifact> results = new List<SchedulableArtifact>();
@@ -94,7 +94,7 @@ namespace Rally2Slack.Core.Rally.Service
             request = new Request("hierarchicalrequirement");
             request.Project = "/project/" + Config.ProjectID;
             request.Workspace = "/workspace/" + Config.WorkSpaceID;
-            request.Fetch = new List<string>() { "Name", "ObjectID", "FormattedID", "c_KanbanState", "c_KanbanProgress", "Description", "ScheduleState", "Owner" };
+            request.Fetch = new List<string>() { "Name", "ObjectID", "FormattedID", "c_KanbanState", "c_STEPKanban","c_KanbanProgress", "Description", "ScheduleState", "Owner" };
             request.Query = new Query("Iteration.Name", Query.Operator.Equals, iterationName);
             queryResult = restApi.Query(request);
             if (queryResult.Results.Any())
@@ -112,7 +112,8 @@ namespace Rally2Slack.Core.Rally.Service
         {
             CatagorizedByKanbanState,
             CatagorizedByKanbanProgress,
-            CatagorizedByScheduleState
+            CatagorizedByScheduleState,
+            CatagorizedBySTEPKanbanState
         }
 
         public class RallyConfiguration
@@ -130,6 +131,7 @@ namespace Rally2Slack.Core.Rally.Service
                 {
                     GetDEConfiguration(),
                     GetDEAnalyticsConfiguration(),
+                    GetDeSTEPConfiguration(),
                     GetEncariConfiguration(),
                     GetFinoMarketingConfiguration(),
                     GetSlackTestConfiguration(),
@@ -270,6 +272,20 @@ namespace Rally2Slack.Core.Rally.Service
                     WorkSpaceID = 13073262940,
                     KanbanSort = KanbanSortCategory.CatagorizedByScheduleState,
                     Channels = new List<string>() { "pearson_analytics" }
+                };
+            }
+
+            public static RallyConfiguration GetDeSTEPConfiguration()
+            {
+                return new RallyConfiguration()
+                {
+                    Team = "DE",
+                    UserName = "cheng.huang@finoconsulting.com",
+                    Password = "570124yaya",
+                    ProjectID = 25951496746,
+                    WorkSpaceID = 13073262940,
+                    KanbanSort = KanbanSortCategory.CatagorizedBySTEPKanbanState,
+                    Channels = new List<string>() { "de-step","de-step-git","de-step-scrum","de-step-scrum-dev" }
                 };
             }
         }
